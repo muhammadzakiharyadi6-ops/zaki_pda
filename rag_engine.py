@@ -85,16 +85,24 @@ Tugas Anda:
 
         prompt = f"KONTEKS DOKUMEN METADATA ARSITEKTUR:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}"
 
-        try:
-            response = self.client.models.generate_content(
-                model='gemini-3.8-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.2,
-                    top_p=0.95
+        # Menggunakan gemini-3.8-flash sebagai prioritas utama
+        models_to_try = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+        last_error = None
+
+        for model_name in models_to_try:
+            try:
+                response = self.client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.2,
+                        top_p=0.95
+                    )
                 )
-            )
-            return response.text, retrieved_docs
-        except Exception as e:
-            return f"Terjadi kesalahan saat menghubungi API Gemini: {str(e)}", retrieved_docs
+                return response.text, retrieved_docs
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+        return f"Terjadi kesalahan saat menghubungi API Gemini dengan semua model. Error terakhir: {last_error}", retrieved_docs
