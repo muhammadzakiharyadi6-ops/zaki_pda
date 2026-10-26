@@ -2,14 +2,17 @@ import streamlit as st
 import json
 import os
 import pandas as pd
+import openpyxl
 from rag_engine import SyuhadaRAGEngine
 
+# Configuration Page Streamlit
 st.set_page_config(
     page_title="Syuhada-ArchBot | RAG Metadata Cagar Budaya",
     page_icon="🕌",
     layout="wide"
 )
 
+# Custom CSS Styling
 st.markdown("""
 <style>
     .main-title {
@@ -37,9 +40,70 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Fungsi otomatis untuk membuat file JSON jika belum ada (mencegah FileNotFoundError)
+def ensure_data_file():
+    os.makedirs("data", exist_ok=True)
+    json_path = "data/metadata_syuhada.json"
+    excel_path = "Metadata_DublinCore_RAG_Masjid_Syuhada.xlsx"
+    
+    if not os.path.exists(json_path) and os.path.exists(excel_path):
+        wb = openpyxl.load_workbook(excel_path)
+        ws = wb["Metadata Elemen Arsitektur"]
+        
+        records = []
+        for row in ws.iter_rows(min_row=4, values_only=True):
+            if not row or not row[0]:
+                continue
+                
+            element_id = str(row[0]).strip()
+            drawing_code = str(row[1]).strip() if row[1] else ""
+            title = str(row[2]).strip() if row[2] else ""
+            category = str(row[3]).strip() if row[3] else ""
+            room_code = str(row[4]).strip() if row[4] else ""
+            building_level = str(row[5]).strip() if row[5] else ""
+            materials = str(row[6]).strip() if row[6] else ""
+            dimensions = str(row[7]).strip() if row[7] else ""
+            year_built = str(row[8]).strip() if row[8] else ""
+            description = str(row[9]).strip() if row[9] else ""
+            significance = str(row[10]).strip() if row[10] else ""
+            condition = str(row[11]).strip() if row[11] else ""
+            preservation = str(row[12]).strip() if row[12] else ""
+            source_doc = str(row[13]).strip() if row[13] else ""
+
+            full_text = f"Elemen: {title} ({element_id}). Kode Gambar: {drawing_code}. Kategori: {category}. Lokasi: {room_code}, {building_level}. Dimensi: {dimensions}. Bahan: {materials}. Deskripsi: {description}. Peringkat Signifikansi: {significance}. Kondisi Kerusakan: {condition}. Rekomendasi Pemugaran: {preservation}. Sumber: {source_doc}."
+
+            doc_entry = {
+                "chunk_id": f"{element_id}_FULL",
+                "text": full_text,
+                "metadata": {
+                    "element_id": element_id,
+                    "drawing_code": drawing_code,
+                    "title": title,
+                    "category": category,
+                    "room_code": room_code,
+                    "building_level": building_level,
+                    "materials": materials,
+                    "dimensions": dimensions,
+                    "year_built": year_built,
+                    "significance": significance,
+                    "condition": condition,
+                    "preservation_policy": preservation,
+                    "source_doc": source_doc
+                }
+            }
+            records.append(doc_entry)
+
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(records, f, ensure_ascii=False, indent=2)
+
+# Jalankan pengecekan/pembuatan data sebelum load
+ensure_data_file()
+
+# Sidebar Configuration
 st.sidebar.image("https://img.icons8.com/color/96/mosque.png", width=64)
 st.sidebar.title("📌 Navigasi & Setup")
 
+# API Key Input
 api_key_env = os.getenv("GEMINI_API_KEY")
 if not api_key_env and "GEMINI_API_KEY" in st.secrets:
     api_key_env = st.secrets["GEMINI_API_KEY"]
@@ -51,10 +115,17 @@ st.sidebar.subheader("🔍 Filter & Eksplorasi Data")
 
 @st.cache_data
 def load_metadata():
-    with open("data/metadata_syuhada.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+    json_path = "data/metadata_syuhada.json"
+    if os.path.exists(json_path):
+        with open(json_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
 raw_data = load_metadata()
+if not raw_data:
+    st.error("File database metadata tidak ditemukan. Pastikan file Excel 'Metadata_DublinCore_RAG_Masjid_Syuhada.xlsx' ada di dalam repository GitHub Anda.")
+    st.stop()
+
 df_elements = pd.DataFrame([d["metadata"] for d in raw_data])
 
 selected_category = st.sidebar.selectbox("Filter Kategori:", ["Semua Kategori"] + list(df_elements["category"].unique()))
@@ -68,6 +139,7 @@ if selected_level != "Semua Lantai":
 
 st.sidebar.write(f"Menampilkan **{len(df_filtered)}** elemen.")
 
+# Main Header
 st.markdown('<p class="main-title">🕌 Syuhada-ArchBot (RAG AI Cagar Budaya)</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Sistem Tanya-Jawab Berbasis Metadata Dublin Core & Pedoman Pelestarian Masjid Peringatan Syuhada Yogyakarta</p>', unsafe_allow_html=True)
 
