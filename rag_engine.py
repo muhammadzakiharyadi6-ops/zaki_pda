@@ -14,14 +14,25 @@ class SyuhadaRAGEngine:
         else:
             self.client = None
 
-        with open(data_path, "r", encoding="utf-8") as f:
-            self.documents = json.load(f)
+        if os.path.exists(data_path):
+            with open(data_path, "r", encoding="utf-8") as f:
+                self.documents = json.load(f)
+        else:
+            self.documents = []
 
-        self.texts = [doc["text"] for doc in self.documents]
-        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2))
-        self.doc_vectors = self.vectorizer.fit_transform(self.texts)
+        if self.documents:
+            self.texts = [doc["text"] for doc in self.documents]
+            self.vectorizer = TfidfVectorizer(ngram_range=(1, 2))
+            self.doc_vectors = self.vectorizer.fit_transform(self.texts)
+        else:
+            self.texts = []
+            self.vectorizer = None
+            self.doc_vectors = None
 
     def retrieve(self, query: str, top_k: int = 4):
+        if not self.documents or self.doc_vectors is None:
+            return []
+            
         query_vec = self.vectorizer.transform([query])
         similarities = cosine_similarity(query_vec, self.doc_vectors).flatten()
         top_indices = np.argsort(similarities)[::-1][:top_k]
@@ -76,7 +87,7 @@ Tugas Anda:
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-1.5-flash',
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,

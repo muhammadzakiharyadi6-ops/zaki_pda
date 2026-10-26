@@ -1,7 +1,12 @@
 import json
 import openpyxl
+import os
 
 def build_json_database(excel_path="Metadata_DublinCore_RAG_Masjid_Syuhada.xlsx", output_json="data/metadata_syuhada.json"):
+    if not os.path.exists(excel_path):
+        print(f"File {excel_path} tidak ditemukan!")
+        return
+        
     wb = openpyxl.load_workbook(excel_path)
     ws = wb["Metadata Elemen Arsitektur"]
     
@@ -48,6 +53,7 @@ def build_json_database(excel_path="Metadata_DublinCore_RAG_Masjid_Syuhada.xlsx"
         }
         records.append(doc_entry)
 
+    os.makedirs(os.path.dirname(output_json), exist_ok=True)
     with open(output_json, "w", encoding="utf-8") as f:
         json.dump(records, f, ensure_ascii=False, indent=2)
     

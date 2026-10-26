@@ -40,7 +40,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Fungsi otomatis untuk membuat file JSON jika belum ada (mencegah FileNotFoundError)
 def ensure_data_file():
     os.makedirs("data", exist_ok=True)
     json_path = "data/metadata_syuhada.json"
@@ -96,14 +95,11 @@ def ensure_data_file():
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(records, f, ensure_ascii=False, indent=2)
 
-# Jalankan pengecekan/pembuatan data sebelum load
 ensure_data_file()
 
-# Sidebar Configuration
 st.sidebar.image("https://img.icons8.com/color/96/mosque.png", width=64)
 st.sidebar.title("📌 Navigasi & Setup")
 
-# API Key Input
 api_key_env = os.getenv("GEMINI_API_KEY")
 if not api_key_env and "GEMINI_API_KEY" in st.secrets:
     api_key_env = st.secrets["GEMINI_API_KEY"]
@@ -139,7 +135,6 @@ if selected_level != "Semua Lantai":
 
 st.sidebar.write(f"Menampilkan **{len(df_filtered)}** elemen.")
 
-# Main Header
 st.markdown('<p class="main-title">🕌 Syuhada-ArchBot (RAG AI Cagar Budaya)</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Sistem Tanya-Jawab Berbasis Metadata Dublin Core & Pedoman Pelestarian Masjid Peringatan Syuhada Yogyakarta</p>', unsafe_allow_html=True)
 
